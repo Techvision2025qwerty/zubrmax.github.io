@@ -3299,7 +3299,51 @@
   margin: 10px 0;
   font-size: 1.1em;
 }
-
+/* Welcome Modal Styles */
+.welcome-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.welcome-modal-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+.welcome-modal-box {
+  background: linear-gradient(135deg, rgba(30, 144, 255, 0.9), rgba(70, 130, 180, 0.85));
+  color: white;
+  padding: 30px 40px;
+  border-radius: 24px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+  animation: fadeInScale 0.6s ease-out;
+}
+.welcome-modal-box h2 {
+  margin: 0 0 15px 0;
+  font-size: 1.8em;
+}
+.welcome-modal-box p {
+  margin: 0;
+  font-size: 1.2em;
+  font-weight: 500;
+}
+@keyframes fadeInScale {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
   </style>
 </head>
 <body>
@@ -4048,7 +4092,13 @@
     </div>
   </div>
 </div>
-
+<!-- Welcome Time-Based Modal -->
+<div id="welcome-modal" class="welcome-modal-overlay">
+  <div class="welcome-modal-box">
+    <h2>Здравствуйте! 😊</h2>
+    <p id="welcome-date-text"></p>
+  </div>
+</div>
   <script>
     let hasConsent = false;
 const consent = localStorage.getItem('cookieConsent');
@@ -7329,6 +7379,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Инициализация модуля эмодзи
     initEmojiModule();
+  // Welcome modal logic — show once per 24 hours
+const lastSeenDate = localStorage.getItem('welcomeLastSeenDate');
+const today = new Date().toLocaleDateString('ru-RU');
+const welcomeModal = document.getElementById('welcome-modal');
+const welcomeDateText = document.getElementById('welcome-date-text');
+
+if (lastSeenDate !== today) {
+  welcomeDateText.innerText = `Сегодня: ${today}`;
+  welcomeModal.classList.add('active');
+  localStorage.setItem('welcomeLastSeenDate', today);
+  setTimeout(() => {
+    welcomeModal.classList.remove('active');
+  }, 3000); // 3 seconds
+}
 });
   </script>
 </body>
