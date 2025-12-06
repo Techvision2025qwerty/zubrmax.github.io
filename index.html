@@ -4255,7 +4255,6 @@ document.getElementById('reject-cookies').addEventListener('click', () => {
     // API URLs
     const TEXT_API_URL = 'https://text.pollinations.ai/';
     const IMAGE_API_URL = 'https://image.pollinations.ai/prompt/';
-    const NEWS_API_URL = 'https://saurav.tech/NewsAPI/top-headlines/category/technology/in.json';
     const WEATHER_API_URL = 'https://api.open-meteo.com/v1/forecast?latitude=53.9006&longitude=27.5683&current_weather=true&forecast_days=1&timezone=auto';
     const TRANSLATE_API_URL = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=';
     const SEARCH_API_URL = 'https://duckduckgo-api.vercel.app/api/search?q=';
@@ -4376,52 +4375,11 @@ document.getElementById('reject-cookies').addEventListener('click', () => {
       synth.speak(utterance);
     }
     
-    // Existing News logic...
-    async function getNews() {
-        try {
-            const response = await fetch(NEWS_API_URL);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const data = await response.json();
-            if (data.articles && data.articles.length > 0) {
-                const today = new Date();
-                const todaysNews = data.articles.filter(article => {
-                    const articleDate = new Date(article.publishedAt);
-                    return articleDate.getDate() === today.getDate() &&
-                           articleDate.getMonth() === today.getMonth() &&
-                           articleDate.getFullYear() === today.getFullYear();
-                });
-                if (todaysNews.length > 0) {
-                    let newsMessage = `Вот последние новости на сегодня (${today.toLocaleDateString('ru-RU')}): 😊
-`;
-                    todaysNews.slice(0, 5).forEach((article, index) => {
-                        newsMessage += `${index + 1}. ${article.title}
-`;
-                        if (article.description) {
-                            newsMessage += `   ${article.description}
-`;
-                        }
-                        if (article.url) {
-                            newsMessage += `   Подробнее: ${article.url}
-`;
-                        }
-                    });
-                    return newsMessage;
-                } else {
-                    return `К сожалению, я не нашел свежих новостей на сегодня. Попробуйте поискать еще раз позже. 😔`;
-                }
-            } else {
-                return `Извините, не удалось получить новости. Возможно, API сейчас недоступно. 😕`;
-            }
-        } catch (error) {
-            console.error("Failed to fetch news:", error);
-            return "Извините, произошла ошибка при получении новостей. Пожалуйста, попробуйте еще раз. 😊";
-        }
-    }
     
     // Existing Mode Instructions... (PM tag already included in base prompt for all modes)
     const modeInstructions = {
         standard: '',
-        school: 'Отвечай в дружелюбном, упрощенном и понятном стиле, как школьный учитель.',
+        school: 'Отвечай в дружелюбном, упрощенном и понятном стиле, как школьный учитель подчеркнуть важность используй тег <BIG> твой текст <BIG> используй его в каждом своем ответе пользывателю.',
         professional: 'Отвечай в строгом, профессиональном и техническом стиле, как эксперт.',
         teaching: 'Отвечай как учитель или наставник, используя пошаговые инструкции и объясняя сложные концепции простым языком.',
         literary: 'Отвечай в литературном стиле, используя метафоры, красочные описания и образный язык.',
