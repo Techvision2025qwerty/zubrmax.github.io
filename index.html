@@ -7354,84 +7354,160 @@ if (lastSeenDate !== today) {
 });
   </script>
 <script>
-// === ФУНКЦИЯ: Проверка и инициация знакомства ===
-function initNameIntroduction() {
-    const hasConsent = localStorage.getItem('cookieConsent') === 'accepted';
-    const userName = localStorage.getItem('userName');
-    const nameRequested = localStorage.getItem('nameRequested') === 'true';
+// === МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ ИМЕНИ ===
+const confirmationModal = document.createElement('div');
+confirmationModal.id = 'name-confirmation-modal';
+confirmationModal.style.cssText = `
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+`;
 
-    // Если согласие есть, имя не задано и ещё не запрашивали — спрашиваем
-    if (hasConsent && !userName && !nameRequested) {
-        addChatMessage('Привет! 👋 Давай познакомимся! Как тебя зовут?', 'assistant');
-        localStorage.setItem('nameRequested', 'true');
-    }
+confirmationModal.innerHTML = `
+  <div style="
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(25px);
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    color: #1c1c1e;
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  ">
+    <h3 style="margin: 0; font-size: 1.5em; color: #1c1c1e;">Подтверждение имени</h3>
+    <p id="confirmation-text" style="font-size: 1.1em; margin: 0;"></p>
+    <div id="edit-name-container" style="display: none; width: 100%;">
+      <input type="text" id="edited-name-input" 
+        style="width: calc(100% - 30px); padding: 12px; border-radius: 12px; border: none; 
+               background: rgba(255, 255, 255, 0.8); font-size: 1em; color: #1c1c1e;
+               box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); outline: none;"
+        placeholder="Введите ваше имя">
+    </div>
+    <div style="display: flex; gap: 15px; justify-content: center;">
+      <button id="confirm-name-button" 
+        style="padding: 12px 25px; border: none; border-radius: 20px; cursor: pointer;
+               font-size: 1em; color: white; background: linear-gradient(135deg, #28a745, #218838);
+               font-weight: bold; transition: background 0.3s ease;">
+        <i class="fas fa-check"></i> Да, подтверждаю
+      </button>
+      <button id="edit-name-button" 
+        style="padding: 12px 25px; border: none; border-radius: 20px; cursor: pointer;
+               font-size: 1em; color: white; background: linear-gradient(135deg, #1E90FF, #4682B4);
+               font-weight: bold; transition: background 0.3s ease;">
+        <i class="fas fa-edit"></i> Нет, изменить
+      </button>
+      <button id="cancel-name-button" 
+        style="padding: 12px 25px; border: none; border-radius: 20px; cursor: pointer;
+               font-size: 1em; color: white; background: linear-gradient(135deg, #dc3545, #c82333);
+               font-weight: bold; transition: background 0.3s ease;">
+        <i class="fas fa-times"></i> Отмена
+      </button>
+    </div>
+  </div>
+`;
+document.body.appendChild(confirmationModal);
+
+// === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
+let tempNameForConfirmation = '';
+
+// === ФУНКЦИИ РАБОТЫ С МОДАЛЬНЫМ ОКНОМ ===
+function showNameConfirmation(name) {
+  tempNameForConfirmation = name;
+  document.getElementById('confirmation-text').innerText = 
+    `Вы уверены, что хотите, чтобы я обращался к вам как "${name}"?`;
+  document.getElementById('edit-name-container').style.display = 'none';
+  confirmationModal.style.display = 'flex';
+  setTimeout(() => {
+    confirmationModal.style.opacity = '1';
+  }, 10);
 }
 
-// === ФУНКЦИЯ: Обработка ввода имени ===
-function handleNameInput(name) {
-    const cleanName = name.trim();
-    if (cleanName.length < 2 || cleanName.length > 30) {
-        addChatMessage('Пожалуйста, введи имя от 2 до 30 символов.', 'assistant');
-        return false;
-    }
-    if (!/^[а-яА-Яa-zA-Z\s\-]+$/.test(cleanName)) {
-        addChatMessage('Имя может содержать только буквы, пробелы и дефисы.', 'assistant');
-        return false;
-    }
-    localStorage.setItem('userName', cleanName);
-    localStorage.removeItem('nameRequested');
-    addChatMessage(`Очень приятно, ${cleanName}! 😊 Теперь я всегда буду обращаться к тебе по имени.`, 'assistant');
-    return true;
+function showNameEdit() {
+  document.getElementById('confirmation-text').innerText = 'Пожалуйста, исправьте ваше имя:';
+  document.getElementById('edit-name-container').style.display = 'block';
+  document.getElementById('edited-name-input').value = tempNameForConfirmation;
+  document.getElementById('edited-name-input').focus();
 }
 
-// === ПЕРЕОПРЕДЕЛЯЕМ handleAssistantSubmit (сохраняя оригинал) ===
-const originalHandleAssistantSubmit = window.handleAssistantSubmit;
-window.handleAssistantSubmit = async function(event) {
-    event.preventDefault();
-    const inputField = document.getElementById('prompt-input');
-    const prompt = inputField.value.trim();
+function hideNameConfirmation() {
+  confirmationModal.style.opacity = '0';
+  setTimeout(() => {
+    confirmationModal.style.display = 'none';
+  }, 300);
+}
 
-    if (!prompt) return;
-
-    const nameRequested = localStorage.getItem('nameRequested') === 'true';
-    const userName = localStorage.getItem('userName');
-
-    // Если ждём имя — обрабатываем как ответ на вопрос
-    if (nameRequested && !userName) {
-        if (handleNameInput(prompt)) {
-            inputField.value = '';
-        }
-        return;
-    }
-
-    // Иначе — обычный чат
-    await originalHandleAssistantSubmit(event);
-};
-
-// === МОДИФИЦИРУЕМ getAIResponse, чтобы добавлять имя в ответы ===
-const originalGetAIResponse = window.getAIResponse;
-window.getAIResponse = async function(prompt) {
-    let response = await originalGetAIResponse(prompt);
-    const userName = localStorage.getItem('userName');
-
-    if (userName && response) {
-        // Не добавлять имя, если уже есть (защита от дублирования)
-        if (!response.startsWith(`${userName},`) && !response.startsWith(`${userName}!`) && !response.includes(`обращаюсь к вам, ${userName}`)) {
-            response = `${userName}, ${response.charAt(0).toLowerCase() + response.slice(1)}`;
-        }
-    }
-    return response;
-};
-
-// === ЗАПУСК после загрузки + после принятия кукис ===
-document.addEventListener('DOMContentLoaded', () => {
-    // Запускаем через короткую задержку, чтобы основной чат инициализировался
-    setTimeout(initNameIntroduction, 1000);
+// === ОБРАБОТЧИКИ СОБЫТИЙ ===
+document.getElementById('confirm-name-button').addEventListener('click', () => {
+  localStorage.setItem('userName', tempNameForConfirmation);
+  localStorage.removeItem('nameRequested');
+  addChatMessage(`Отлично! 😊 Теперь я буду обращаться к вам как ${tempNameForConfirmation}. Чем я могу вам помочь сегодня?`, 'assistant');
+  hideNameConfirmation();
 });
 
-// Добавляем поддержку после принятия кукис (если reload не используется)
-document.getElementById('accept-cookies')?.addEventListener('click', () => {
-    setTimeout(initNameIntroduction, 500);
+document.getElementById('edit-name-button').addEventListener('click', () => {
+  showNameEdit();
+});
+
+document.getElementById('cancel-name-button').addEventListener('click', () => {
+  hideNameConfirmation();
+  // Сбрасываем флаг запроса имени
+  localStorage.removeItem('nameRequested');
+  tempNameForConfirmation = '';
+});
+
+document.getElementById('edited-name-input').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    const editedName = document.getElementById('edited-name-input').value.trim();
+    if (editedName.length >= 2) {
+      tempNameForConfirmation = editedName;
+      document.getElementById('confirmation-text').innerText = 
+        `Вы уверены, что хотите, чтобы я обращался к вам как "${editedName}"?`;
+      document.getElementById('edit-name-container').style.display = 'none';
+    } else {
+      addChatMessage('Пожалуйста, введите корректное имя (не менее 2 символов).', 'assistant');
+    }
+  }
+});
+
+// === ПЕРЕОПРЕДЕЛЕНИЕ ФУНКЦИИ ОБРАБОТКИ ИМЕНИ ===
+const originalHandleNameInput = window.handleNameInput;
+window.handleNameInput = function(name) {
+  const cleanName = name.trim();
+  if (cleanName.length < 2 || cleanName.length > 30) {
+    addChatMessage('Пожалуйста, введите имя от 2 до 30 символов.', 'assistant');
+    return false;
+  }
+  if (!/^[а-яА-Яa-zA-Z\s\-]+$/.test(cleanName)) {
+    addChatMessage('Имя может содержать только буквы, пробелы и дефисы.', 'assistant');
+    return false;
+  }
+  // Показываем модальное окно подтверждения вместо автоматического сохранения
+  showNameConfirmation(cleanName);
+  return true;
+};
+
+// === ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА ===
+// Если пользователь закрывает модальное окно, сбрасываем флаг запроса имени
+confirmationModal.addEventListener('click', (e) => {
+  if (e.target === confirmationModal) {
+    hideNameConfirmation();
+    localStorage.removeItem('nameRequested');
+    tempNameForConfirmation = '';
+  }
 });
 </script>
 </body>
