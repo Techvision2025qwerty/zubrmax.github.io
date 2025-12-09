@@ -7354,161 +7354,122 @@ if (lastSeenDate !== today) {
 });
   </script>
 <script>
-// === МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ ИМЕНИ ===
-const confirmationModal = document.createElement('div');
-confirmationModal.id = 'name-confirmation-modal';
-confirmationModal.style.cssText = `
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(10px);
+// Добавляем элемент для анимации загрузки
+const loadingContainer = document.createElement('div');
+loadingContainer.id = 'response-loading-animation';
+loadingContainer.style.cssText = `
+  position: absolute;
+  bottom: -65px; /* 1.5 см = ~57px + отступ */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  height: 20px;
   display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  z-index: 10;
 `;
 
-confirmationModal.innerHTML = `
-  <div style="
-    background: rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(25px);
-    padding: 30px;
-    border-radius: 20px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    color: #1c1c1e;
-    text-align: center;
-    max-width: 500px;
-    width: 90%;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  ">
-    <h3 style="margin: 0; font-size: 1.5em; color: #1c1c1e;">Подтверждение имени</h3>
-    <p id="confirmation-text" style="font-size: 1.1em; margin: 0;"></p>
-    <div id="edit-name-container" style="display: none; width: 100%;">
-      <input type="text" id="edited-name-input" 
-        style="width: calc(100% - 30px); padding: 12px; border-radius: 12px; border: none; 
-               background: rgba(255, 255, 255, 0.8); font-size: 1em; color: #1c1c1e;
-               box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); outline: none;"
-        placeholder="Введите ваше имя">
-    </div>
-    <div style="display: flex; gap: 15px; justify-content: center;">
-      <button id="confirm-name-button" 
-        style="padding: 12px 25px; border: none; border-radius: 20px; cursor: pointer;
-               font-size: 1em; color: white; background: linear-gradient(135deg, #28a745, #218838);
-               font-weight: bold; transition: background 0.3s ease;">
-        <i class="fas fa-check"></i> Да, подтверждаю
-      </button>
-      <button id="edit-name-button" 
-        style="padding: 12px 25px; border: none; border-radius: 20px; cursor: pointer;
-               font-size: 1em; color: white; background: linear-gradient(135deg, #1E90FF, #4682B4);
-               font-weight: bold; transition: background 0.3s ease;">
-        <i class="fas fa-edit"></i> Нет, изменить
-      </button>
-      <button id="cancel-name-button" 
-        style="padding: 12px 25px; border: none; border-radius: 20px; cursor: pointer;
-               font-size: 1em; color: white; background: linear-gradient(135deg, #dc3545, #c82333);
-               font-weight: bold; transition: background 0.3s ease;">
-        <i class="fas fa-times"></i> Отмена
-      </button>
-    </div>
-  </div>
-`;
-document.body.appendChild(confirmationModal);
-
-// === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
-let tempNameForConfirmation = '';
-
-// === ФУНКЦИИ РАБОТЫ С МОДАЛЬНЫМ ОКНОМ ===
-function showNameConfirmation(name) {
-  tempNameForConfirmation = name;
-  document.getElementById('confirmation-text').innerText = 
-    `Вы уверены, что хотите, чтобы я обращался к вам как "${name}"?`;
-  document.getElementById('edit-name-container').style.display = 'none';
-  confirmationModal.style.display = 'flex';
-  setTimeout(() => {
-    confirmationModal.style.opacity = '1';
-  }, 10);
+// Создаем 4 палки
+for (let i = 1; i <= 4; i++) {
+  const bar = document.createElement('div');
+  bar.className = 'loading-bar';
+  bar.style.cssText = `
+    width: 14px; /* Широкие палки */
+    height: 6px; /* Низкие в базовом состоянии */
+    background-color: #4682B4; /* Цвет steel blue как просил пользователь */
+    border-radius: 3px;
+    transition: height 0.3s ease;
+  `;
+  loadingContainer.appendChild(bar);
 }
 
-function showNameEdit() {
-  document.getElementById('confirmation-text').innerText = 'Пожалуйста, исправьте ваше имя:';
-  document.getElementById('edit-name-container').style.display = 'block';
-  document.getElementById('edited-name-input').value = tempNameForConfirmation;
-  document.getElementById('edited-name-input').focus();
-}
+// Добавляем контейнер в DOM
+document.querySelector('.input-container').appendChild(loadingContainer);
 
-function hideNameConfirmation() {
-  confirmationModal.style.opacity = '0';
-  setTimeout(() => {
-    confirmationModal.style.display = 'none';
-  }, 300);
-}
-
-// === ОБРАБОТЧИКИ СОБЫТИЙ ===
-document.getElementById('confirm-name-button').addEventListener('click', () => {
-  localStorage.setItem('userName', tempNameForConfirmation);
-  localStorage.removeItem('nameRequested');
-  addChatMessage(`Отлично! 😊 Теперь я буду обращаться к вам как ${tempNameForConfirmation}. Чем я могу вам помочь сегодня?`, 'assistant');
-  hideNameConfirmation();
-});
-
-document.getElementById('edit-name-button').addEventListener('click', () => {
-  showNameEdit();
-});
-
-document.getElementById('cancel-name-button').addEventListener('click', () => {
-  hideNameConfirmation();
-  // Сбрасываем флаг запроса имени
-  localStorage.removeItem('nameRequested');
-  tempNameForConfirmation = '';
-});
-
-document.getElementById('edited-name-input').addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') {
-    const editedName = document.getElementById('edited-name-input').value.trim();
-    if (editedName.length >= 2) {
-      tempNameForConfirmation = editedName;
-      document.getElementById('confirmation-text').innerText = 
-        `Вы уверены, что хотите, чтобы я обращался к вам как "${editedName}"?`;
-      document.getElementById('edit-name-container').style.display = 'none';
-    } else {
-      addChatMessage('Пожалуйста, введите корректное имя (не менее 2 символов).', 'assistant');
+// Функция для запуска анимации
+function startResponseAnimation() {
+  loadingContainer.style.display = 'flex';
+  
+  let currentBar = 0;
+  const bars = document.querySelectorAll('.loading-bar');
+  
+  // Функция анимации
+  function animateBars() {
+    // Сбрасываем все палки в базовое состояние
+    bars.forEach(bar => {
+      bar.style.height = '6px'; // Базовая высота
+    });
+    
+    // Анимируем текущую палку - поднимаем ее, затем опускаем
+    if (bars[currentBar]) {
+      // Поднимаем палку
+      bars[currentBar].style.height = '20px'; // Максимальная высота
+      
+      // Через короткую задержку опускаем палку обратно
+      setTimeout(() => {
+        if (bars[currentBar]) {
+          bars[currentBar].style.height = '6px'; // Возвращаем в базовое состояние
+        }
+      }, 200);
     }
+    
+    // Переходим к следующей палке
+    currentBar = (currentBar + 1) % bars.length;
   }
-});
+  
+  // Запускаем интервал для анимации
+  const animationInterval = setInterval(animateBars, 400);
+  
+  return animationInterval;
+}
 
-// === ПЕРЕОПРЕДЕЛЕНИЕ ФУНКЦИИ ОБРАБОТКИ ИМЕНИ ===
-const originalHandleNameInput = window.handleNameInput;
-window.handleNameInput = function(name) {
-  const cleanName = name.trim();
-  if (cleanName.length < 2 || cleanName.length > 30) {
-    addChatMessage('Пожалуйста, введите имя от 2 до 30 символов.', 'assistant');
-    return false;
+// Останавливаем анимацию
+function stopResponseAnimation(animationInterval) {
+  clearInterval(animationInterval);
+  loadingContainer.style.display = 'none';
+  
+  // Сбрасываем высоту всех палок
+  const bars = document.querySelectorAll('.loading-bar');
+  bars.forEach(bar => {
+    bar.style.height = '6px'; // Базовая высота
+  });
+}
+
+// Интегрируем анимацию в существующую логику
+const originalHandleAssistantSubmit = window.handleAssistantSubmit;
+window.handleAssistantSubmit = async function(event) {
+  event.preventDefault();
+  const inputField = document.getElementById('prompt-input');
+  let prompt = inputField.value.trim();
+  
+  if (prompt === '') return;
+  
+  // Запускаем анимацию
+  const animationInterval = startResponseAnimation();
+  
+  try {
+    // Выполняем оригинальную функцию
+    await originalHandleAssistantSubmit(event);
+  } finally {
+    // Останавливаем анимацию после получения ответа
+    stopResponseAnimation(animationInterval);
   }
-  if (!/^[а-яА-Яa-zA-Z\s\-]+$/.test(cleanName)) {
-    addChatMessage('Имя может содержать только буквы, пробелы и дефисы.', 'assistant');
-    return false;
-  }
-  // Показываем модальное окно подтверждения вместо автоматического сохранения
-  showNameConfirmation(cleanName);
-  return true;
 };
 
-// === ДОПОЛНИТЕЛЬНАЯ ЗАЩИТА ===
-// Если пользователь закрывает модальное окно, сбрасываем флаг запроса имени
-confirmationModal.addEventListener('click', (e) => {
-  if (e.target === confirmationModal) {
-    hideNameConfirmation();
-    localStorage.removeItem('nameRequested');
-    tempNameForConfirmation = '';
+// Также добавляем анимацию для генерации изображений
+const originalAddChatMessage = window.addChatMessage;
+window.addChatMessage = function(message, sender, isImage = false, prompt = '') {
+  // Если это ответ ИИ и это не изображение, показываем анимацию
+  if (sender === 'assistant' && !isImage && !message.startsWith('Вот что я нашел в интернете')) {
+    const animationInterval = startResponseAnimation();
+    setTimeout(() => {
+      stopResponseAnimation(animationInterval);
+      originalAddChatMessage(message, sender, isImage, prompt);
+    }, 1000);
+  } else {
+    originalAddChatMessage(message, sender, isImage, prompt);
   }
-});
+};
 </script>
 </body>
 </html>
