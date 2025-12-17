@@ -3344,9 +3344,82 @@
   0% { transform: scale(0.8); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
+
+#menu-toggle-button {
+  display: none;
+}
+/* Добавьте эти стили в ваш CSS */
+.chat-message {
+  position: relative;
+  padding-right: 30px; /* отступ для кнопки */
+}
+
+.speak-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  border: none;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  color: #1E90FF;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: all 0.2s;
+  z-index: 10;
+  user-select: none;
+}
+
+.speak-btn:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: scale(1.1);
+}
+
+.speak-btn.playing {
+  color: #28a745;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(40, 167, 69, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+}
+
+.delete-msg-btn {
+  position: absolute;
+  top: 8px;
+  right: 38px; /* Расположение слева от кнопки озвучки */
+  background: rgba(255, 255, 255, 0.7);
+  border: none;
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: #dc3545;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  transition: all 0.2s ease;
+  z-index: 10;
+  user-select: none;
+}
+.delete-msg-btn:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: scale(1.1);
+}
+
   </style>
 </head>
 <body>
+<headers>
   <audio id="background-music" loop></audio>
   <div class="top-bar" id="top-bar">
     <div class="top-buttons">
@@ -3400,6 +3473,7 @@
             </div>
         </div>
         </div>
+       </headers>
     </div>
     <button id="speak-toggle-button" class="speak-button">
         <i class="fas fa-volume-up"></i> Озвучить ответ
@@ -3838,6 +3912,7 @@
   <div class="secondary-menu-screen" id="secondary-menu-screen">
       <div class="secondary-menu-content">
           <button class="close-secondary-menu" id="close-secondary-menu">&times;</button>
+          <sidebar>
           <h2>Дополнительные функции</h2>
           <div class="secondary-menu-buttons">
               <button class="secondary-menu-button" id="secondary-low-vision-button">
@@ -3864,6 +3939,7 @@
   <i class="fas fa-book-open"></i>
   <span>Создать рассказ</span>
 </button>
+ </sidebar>
 
           </div>
       </div>
@@ -4273,6 +4349,14 @@ document.getElementById('reject-cookies').addEventListener('click', () => {
         micOverlay.classList.remove('active');
         document.getElementById('mic-toggle-button').classList.remove('active');
         resetMicOverlay();
+
+        function handleAssistantSubmit(event) {
+  // Останавливаем любое текущее воспроизведение
+  if (window.speechSynthesis.speaking) {
+    window.speechSynthesis.cancel();
+  }
+  // ... остальной код функции
+}
       };
       recognition.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
@@ -4484,31 +4568,33 @@ ${prompt}`;
         }
     }
     
-    // Modified Chat Message logic to parse <PM> tags for assistant messages and handle image clicks...
-    function addChatMessage(message, sender, isImage = false, prompt = '') {
-      const chatBox = document.querySelector('.chat-box');
-      const messageDiv = document.createElement('div');
-      messageDiv.classList.add('chat-message');
-      messageDiv.classList.add(sender === 'user' ? 'user-message' : 'assistant-message');
-      if (isImage) {
-        const img = document.createElement('img');
-        img.src = message;
-        img.alt = 'Generated image';
-        img.dataset.prompt = prompt;
-        img.addEventListener('click', () => openImageModal(message, prompt));
-        messageDiv.appendChild(img);
-      } else {
-        if (sender === 'assistant') {
-          // Parse <PM> tags for assistant messages
-          const parsedMessage = message.replace(/<PM>(.*?)<\/PM>/g, '<div class="pm-header">$1</div>');
-          messageDiv.innerHTML = parsedMessage;
-        } else {
-          messageDiv.innerText = message;
-        }
-      }
-      chatBox.appendChild(messageDiv);
-      chatBox.scrollTop = chatBox.scrollHeight;
+function addChatMessage(message, sender, isImage = false, prompt = '') {
+  const chatBox = document.querySelector('.chat-box');
+  const messageDiv = document.createElement('div');
+  messageDiv.classList.add('chat-message');
+  messageDiv.classList.add(sender === 'user' ? 'user-message' : 'assistant-message');
+  
+  if (isImage) {
+    const img = document.createElement('img');
+    img.src = message;
+    img.alt = 'Generated image';
+    img.dataset.prompt = prompt;
+    img.addEventListener('click', () => openImageModal(message, prompt));
+    messageDiv.appendChild(img);
+  } else {
+    if (sender === 'assistant') {
+      const parsedMessage = message.replace(/<PM>(.*?)<\/PM>/g, '<div class="pm-header">$1</div>');
+      messageDiv.innerHTML = parsedMessage;
+      // Добавляем кнопки: озвучка + удаление
+      addSpeakButton(messageDiv, message);
+      addDeleteButton(messageDiv);
+    } else {
+      messageDiv.innerText = message;
     }
+  }
+  chatBox.appendChild(messageDiv);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
     
     // NEW: Image Modal Functions
     function openImageModal(url, prompt) {
@@ -7470,6 +7556,84 @@ window.addChatMessage = function(message, sender, isImage = false, prompt = '') 
     originalAddChatMessage(message, sender, isImage, prompt);
   }
 };
+// Функция для добавления кнопки озвучивания
+function addSpeakButton(container, textContent) {
+  // Удаляем предыдущую кнопку, если она есть
+  const existingBtn = container.querySelector('.speak-btn');
+  if (existingBtn) {
+    existingBtn.remove();
+  }
+  
+  // Создаем кнопку
+  const speakBtn = document.createElement('button');
+  speakBtn.className = 'speak-btn';
+  speakBtn.innerHTML = '🔊';
+  speakBtn.title = 'Озвучить ответ';
+  
+  // Обработчик нажатия
+  speakBtn.addEventListener('click', () => {
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+      speakBtn.innerHTML = '🔊';
+      speakBtn.classList.remove('playing');
+      return;
+    }
+    
+    // Меняем иконку на индикацию воспроизведения
+    speakBtn.innerHTML = '❚❚';
+    speakBtn.classList.add('playing');
+    
+    // Очищаем текст от HTML-тегов
+    let cleanText = textContent.replace(/<[^>]*>/g, '');
+    
+    // Убираем специальные символы, которые могут мешать озвучиванию
+    cleanText = cleanText.replace(/\*/g, '');
+    cleanText = cleanText.replace(/—/g, '—');
+    
+    // Создаем utterance для синтеза речи
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    
+    // Настройки голоса
+    utterance.lang = 'ru-RU'; // Русский язык
+    utterance.rate = 0.9; // Скорость речи (немного медленнее)
+    utterance.pitch = 1.0; // Высота тона
+    
+    // Обработчик окончания воспроизведения
+    utterance.onend = () => {
+      speakBtn.innerHTML = '🔊';
+      speakBtn.classList.remove('playing');
+    };
+    
+    // Обработчик ошибки
+    utterance.onerror = (event) => {
+      console.error('Ошибка озвучивания:', event.error);
+      speakBtn.innerHTML = '🔊';
+      speakBtn.classList.remove('playing');
+    };
+    
+    // Запускаем синтез речи
+    window.speechSynthesis.speak(utterance);
+  });
+  
+  // Добавляем кнопку в контейнер
+  container.appendChild(speakBtn);
+}
+function addDeleteButton(container) {
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'delete-msg-btn';
+  deleteBtn.innerHTML = '✕';
+  deleteBtn.title = 'Удалить сообщение';
+  deleteBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (confirm('Удалить это сообщение?')) {
+      container.remove();
+    }
+  });
+  container.appendChild(deleteBtn);
+}
+
+
+
 </script>
 </body>
 </html>
